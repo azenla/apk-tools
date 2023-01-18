@@ -1,0 +1,9 @@
+.gradle/
+.vscode/
+.idea/
+build/
+out/
+/work
+/kotlin-js-store
+/work
+/.fleet/*
