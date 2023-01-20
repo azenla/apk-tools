@@ -1,5 +1,7 @@
 package gay.pizza.pkg.apk
 
+import gay.pizza.pkg.log.GlobalLogger
+
 class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
   private val seen = mutableSetOf<ApkIndexPackage>()
   private val allNodes = mutableMapOf<ApkIndexPackage, ApkPackageNode>()
@@ -52,10 +54,57 @@ class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
     return copy
   }
 
-  fun sort(): List<List<ApkPackageNode>> {
+  fun simpleOrderSort(): List<ApkPackageNode> {
+    val stack = mutableListOf<ApkPackageNode>()
+    val resolving = mutableSetOf<ApkPackageNode>()
+    val visited = mutableSetOf<ApkPackageNode>()
+    val ignoring = mutableSetOf<ApkPackageNode>()
+    for (node in shallowIsolates) {
+      simpleOrderSort(node, stack, resolving, visited, ignoring)
+    }
+    return stack
+  }
+
+  private fun simpleOrderSort(node: ApkPackageNode,
+                              stack: MutableList<ApkPackageNode>,
+                              resolving: MutableSet<ApkPackageNode>,
+                              visited: MutableSet<ApkPackageNode>,
+                              ignoring: MutableSet<ApkPackageNode>) {
+    for (dependency in node.children) {
+      if (ignoring.contains(dependency)) {
+        continue
+      }
+
+      if (resolving.contains(dependency)) {
+        GlobalLogger.warn("Cyclic dependency detected on ${dependency.pkg.id}, breaking cycle.")
+        throw DependencyCycleBreakException
+      }
+
+      if (!visited.contains(dependency)) {
+        resolving.add(dependency)
+        try {
+          simpleOrderSort(dependency, stack, resolving, visited, ignoring)
+        } catch (e: DependencyCycleBreakException) {
+          stack.add(node)
+          ignoring.add(node)
+          simpleOrderSort(dependency, stack, resolving, visited, ignoring)
+          ignoring.remove(node)
+        }
+        resolving.remove(dependency)
+        visited.add(dependency)
+      }
+    }
+
+    if (!stack.contains(node)) {
+      stack.add(node)
+    }
+  }
+
+  fun parallelOrderSort(): List<List<ApkPackageNode>> {
     var data = nodes.mapKeys { node(it.key) }.mapValues {
       it.value.children.toMutableSet()
     }.toMutableMap()
+
     data.forEach { entry ->
       entry.value.remove(entry.key)
     }
@@ -80,11 +129,13 @@ class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
       }
 
       if (data.isNotEmpty()) {
-        throw RuntimeException("Cyclic dependency exists:\n${data.map { entry -> entry.value.joinToString(", ") { it.pkg.id } }.joinToString("\n")}")
+        throw ApkCyclicDependencyException("Cyclic dependency exists:\n${data.map { entry -> entry.value.joinToString(", ") { it.pkg.id } }.joinToString("\n")}")
       } else {
         break@mloop
       }
     }
     return result
   }
+
+  private object DependencyCycleBreakException : RuntimeException("Breaking Dependency Cycle")
 }

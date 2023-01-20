@@ -19,6 +19,7 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val depthFirstSearch by option("--depth-first", help = "Depth First Crawl").flag()
   val dotGraph by option("--dot-graph", help = "Output Dot Graph").flag()
   val installOrder by option("--install-order", help = "Show Install Order").flag()
+  val parallelInstallOrder by option("--parallel-install-order", help = "Show Parallel Install Order").flag()
 
   override fun run() {
     keeper.update()
@@ -32,7 +33,15 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     }
 
     if (installOrder) {
-      val installation = graph.sort()
+      val installation = graph.simpleOrderSort()
+      for ((index, node) in installation.withIndex()) {
+        println("$index ${node.pkg.id}")
+      }
+      return
+    }
+
+    if (parallelInstallOrder) {
+      val installation = graph.parallelOrderSort()
       for (set in installation) {
         println(set.joinToString(" ") { it.pkg.id })
       }
