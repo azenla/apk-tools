@@ -11,9 +11,18 @@ class ApkPackageKeeper(val provider: ApkProvider) {
     }
   }
 
-  fun download(packages: Iterable<ApkIndexPackage>) {
+  fun download(packages: Iterable<ApkIndexPackage>): List<ApkPackageFile> {
+    val files = mutableListOf<ApkPackageFile>()
     for (pkg in packages) {
-      provider.packageCache.acquire(pkg, provider.repositoryList)
+      val file = provider.packageCache.acquire(pkg, provider.repositoryList)
+      files.add(file)
+    }
+    return files
+  }
+
+  fun install(files: Iterable<ApkPackageFile>) {
+    for (file in files) {
+      file.extract(provider.systemRootPath)
     }
   }
 }
