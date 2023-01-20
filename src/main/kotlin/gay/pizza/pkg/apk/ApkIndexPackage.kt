@@ -1,7 +1,6 @@
 package gay.pizza.pkg.apk
 
 class ApkIndexPackage(
-  val repo: String,
   val checksum: String,
   id: String,
   val version: String,
@@ -21,10 +20,10 @@ class ApkIndexPackage(
   val installIf: List<ApkIndexPackageInstallIf>,
   val raw: ApkRawIndexEntry
 ) : ApkIndexRequirementRef(id) {
-  val downloadUrl: String = "${repo}/${id}-${version}.apk"
+  val downloadFileName: String = "${id}-${version}.apk"
 
   companion object {
-    fun extract(repo: String, entry: ApkRawIndexEntry): ApkIndexPackage {
+    fun extract(entry: ApkRawIndexEntry): ApkIndexPackage {
       fun ApkRawIndexEntry.required(key: String): String =
         data[key] ?: throw RuntimeException("entry key $key missing (${entry.data})")
 
@@ -47,7 +46,6 @@ class ApkIndexPackage(
       val installIf = (entry.data["i"] ?: "").split(" ").filter { it.isNotBlank() }
 
       return ApkIndexPackage(
-        repo = repo,
         checksum = checksum,
         id = id,
         version = version,

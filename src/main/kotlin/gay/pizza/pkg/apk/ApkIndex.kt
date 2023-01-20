@@ -11,8 +11,8 @@ class ApkIndex(
   fun findById(id: String): ApkIndexPackage? = packages.firstOrNull { it.id == id }
 
   companion object {
-    fun extract(repo: String, index: ApkRawIndex): ApkIndex =
-      ApkIndex(index.packages.map { pkg -> ApkIndexPackage.extract(repo, pkg) })
+    fun extract(index: ApkRawIndex): ApkIndex =
+      ApkIndex(index.packages.map { pkg -> ApkIndexPackage.extract(pkg) })
 
     fun merge(indexes: List<ApkIndex>): ApkIndex = ApkIndex(indexes.map { it.packages }.flatten())
     fun merge(vararg indexes: ApkIndex): ApkIndex = ApkIndex(indexes.map { it.packages }.flatten())
@@ -21,13 +21,13 @@ class ApkIndex(
       val javaUrl = URL("${url}/APKINDEX.tar.gz")
       val urlStream = javaUrl.openStream().buffered()
       val raw = ApkRawIndex.parseGzipTarIndex(urlStream)
-      return extract(url, raw)
+      return extract(raw)
     }
 
-    fun loadByPath(url: String, path: FsPath): ApkIndex {
+    fun loadByPath(path: FsPath): ApkIndex {
       val stream = path.toJavaPath().toFile().inputStream().buffered()
       val raw = ApkRawIndex.parseGzipTarIndex(stream)
-      return extract(url, raw)
+      return extract(raw)
     }
   }
 }

@@ -1,6 +1,8 @@
 package gay.pizza.pkg.apk
 
-class ApkIndexGraph(val index: ApkIndex) {
+import gay.pizza.pkg.log.GlobalLogger
+
+class ApkIndexResolution(val index: ApkIndex) {
   private val mutableRequirementToProvides = mutableMapOf<ApkIndexRequirementRef, MutableSet<ApkIndexPackage>>()
   private val installIfsCache = mutableMapOf<ApkIndexRequirementRef, MutableSet<ApkIndexRequirementRef>>()
 
@@ -8,13 +10,15 @@ class ApkIndexGraph(val index: ApkIndex) {
     get() = mutableRequirementToProvides
 
   init {
-    for (pkg in index.packages) {
-      for (provide in pkg.provides) {
-        mutableRequirementToProvides.getOrPut(provide) { mutableSetOf() }.add(pkg)
-      }
-      mutableRequirementToProvides.getOrPut(pkg) { mutableSetOf() }.add(pkg)
-      for (installIfPkg in pkg.installIf) {
-        installIfsCache.getOrPut(installIfPkg) { mutableSetOf() }.add(pkg)
+    GlobalLogger.timed("computing index resolution cache") {
+      for (pkg in index.packages) {
+        for (provide in pkg.provides) {
+          mutableRequirementToProvides.getOrPut(provide) { mutableSetOf() }.add(pkg)
+        }
+        mutableRequirementToProvides.getOrPut(pkg) { mutableSetOf() }.add(pkg)
+        for (installIfPkg in pkg.installIf) {
+          installIfsCache.getOrPut(installIfPkg) { mutableSetOf() }.add(pkg)
+        }
       }
     }
   }
@@ -31,6 +35,4 @@ class ApkIndexGraph(val index: ApkIndex) {
   }
 
   fun findInstallIfs(pkg: ApkIndexPackage): Set<ApkIndexRequirementRef> = installIfsCache[pkg] ?: emptySet()
-
-  fun tree(pkg: ApkIndexPackage): ApkDependencyTree = ApkDependencyTree(this, pkg)
 }

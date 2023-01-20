@@ -1,25 +1,19 @@
 package gay.pizza.pkg.apk
 
-import gay.pizza.pkg.io.FsPath
-import gay.pizza.pkg.io.createDirectories
+class ApkPackageKeeper(val provider: ApkProvider) {
+  val index: ApkIndex
+    get() = provider.indexCollection.index
 
-class ApkPackageKeeper(val root: FsPath) {
-  val cache = ApkPackageCache(root.resolve("var/cache/apk").apply { createDirectories() })
-
-  private val _index: ApkIndex? = null
-  private val _graph: ApkIndexGraph? = null
-
-  private fun loadApkIndex() {
-    
+  fun update() {
+    provider.indexCollection.clean()
+    provider.repositoryList.indexDownloadUrls.forEach { url ->
+      provider.indexCollection.download(url)
+    }
   }
 
   fun download(packages: Iterable<ApkIndexPackage>) {
     for (pkg in packages) {
-      cache.acquire(pkg)
+      provider.packageCache.acquire(pkg, provider.repositoryList)
     }
-  }
-
-  fun install(packages: Iterable<ApkIndexPackage>) {
-    packages.map {  }
   }
 }

@@ -8,6 +8,7 @@ import gay.pizza.pkg.process.command.RawArgument
 import gay.pizza.pkg.process.command.RelativeDirectoryPath
 import org.apache.commons.compress.archivers.ArchiveInputStream
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 
 class ApkPackageFile(val path: FsPath) {
@@ -42,7 +43,11 @@ class ApkPackageFile(val path: FsPath) {
   companion object {
     fun download(url: String, to: FsPath): ApkPackageFile {
       val javaUrl = URL(url)
-      val stream = javaUrl.openStream()
+      val connection = javaUrl.openConnection() as HttpURLConnection
+      if (connection.responseCode != 200) {
+        throw ApkPackageNotFoundException(url)
+      }
+      val stream = connection.inputStream
       val out = FileOutputStream(to.toJavaPath().toFile())
       stream.copyTo(out)
       stream.close()

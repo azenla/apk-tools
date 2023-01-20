@@ -49,6 +49,12 @@ fun <T> FsPath.readJsonFile(deserializer: DeserializationStrategy<T>): T =
 fun FsPath.readLines(block: (String) -> Unit) =
   operations.readLines(this, block)
 
+fun FsPath.readLinesToList(): List<String> {
+  val lines = mutableListOf<String>()
+  readLines { line -> lines.add(line) }
+  return lines
+}
+
 fun <T> FsPath.readJsonLines(deserializer: DeserializationStrategy<T>, block: (T) -> Unit) =
   operations.readJsonLines(this, deserializer, block)
 

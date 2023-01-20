@@ -41,5 +41,5 @@ tasks.withType<Wrapper> {
 }
 
 application {
-  mainClass.set("gay.pizza.pkg.MainKt")
+  mainClass.set("gay.pizza.pkg.apk.cli.MainKt")
 }
