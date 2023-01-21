@@ -6,10 +6,10 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import gay.pizza.pkg.apk.ApkPackageNode
-import gay.pizza.pkg.apk.ApkIndexResolution
-import gay.pizza.pkg.apk.ApkPackageGraph
-import gay.pizza.pkg.apk.ApkPackageKeeper
+import gay.pizza.pkg.apk.graph.ApkPackageNode
+import gay.pizza.pkg.apk.index.ApkIndexResolution
+import gay.pizza.pkg.apk.graph.ApkPackageGraph
+import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {
   val packages by argument("package").multiple(required = true)

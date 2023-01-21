@@ -4,5 +4,6 @@ import com.github.ajalt.clikt.core.subcommands
 
 fun main(args: Array<String>) = ApkCommand().subcommands(
   ApkResolveCommand(),
-  ApkAddCommand()
+  ApkAddCommand(),
+  ApkInspectInstalledCommand()
 ).main(args)
