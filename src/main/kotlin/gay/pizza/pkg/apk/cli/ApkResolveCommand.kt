@@ -11,6 +11,7 @@ import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
 import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
+import java.util.concurrent.atomic.AtomicInteger
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {
   val packages by argument("package").multiple()
@@ -24,6 +25,7 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val trails by option("--trails", help = "Calculate Package Trails").flag()
   val trailsUseDepth by option("--trails-use-depth", help = "Package Trails Use Depth").flag()
   val validateSoundGraph by option("--validate-sound-graph", help = "Validate Sound Graph").flag()
+  val onlyPrintStats by option("--just-stats", help = "Just Print Statistics").flag()
 
   override fun run() {
     val resolution = ApkIndexResolution(keeper.index)
@@ -78,6 +80,15 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
       graph.trails(trailsUseDepth) { trail ->
         println(trail.map { it?.pkg?.id }.joinToString(" ") { it ?: "CYCLE" })
       }
+      return
+    }
+
+    if (onlyPrintStats) {
+      println("${graph.nodes.size} nodes")
+      println("${graph.edges.size} edges")
+      var trailCount = 0
+      graph.trails { trailCount++ }
+      println("$trailCount trails")
       return
     }
 
