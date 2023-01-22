@@ -23,12 +23,17 @@ class ApkIndexResolution(val index: ApkIndex) {
     }
   }
 
-  fun validateSoundGraph() {
+  fun validateSoundGraph(warn: Boolean = false) {
     for (pkg in index.packages) {
       for (dependency in pkg.dependencies) {
         val provides = requirementToProvides[dependency]
         if (provides.isNullOrEmpty()) {
-          throw RuntimeException("Package ${pkg.id} has dependency ${dependency.id} that is not satisfied.")
+          val message = "Package ${pkg.id} has dependency ${dependency.id} that is not satisfied."
+          if (warn) {
+            GlobalLogger.warn(message)
+          } else {
+            throw RuntimeException(message)
+          }
         }
       }
     }

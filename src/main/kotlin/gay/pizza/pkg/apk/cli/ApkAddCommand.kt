@@ -15,10 +15,11 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
   val keeper by requireObject<ApkPackageKeeper>()
 
   override fun run() {
-    keeper.update()
-
     val resolution = ApkIndexResolution(keeper.index)
     val graph = ApkPackageGraph(resolution)
+
+    val startWorldPackages = keeper.provider.world.read()
+
     for (name in packages) {
       val pkg = keeper.index.packageById(name)
       graph.add(pkg)
@@ -35,6 +36,7 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
       files.add(node to file)
     }
 
+    val wouldInstallWorld = files.map { it.first.pkg.id }.toList()
     for ((i, pair) in files.withIndex()) {
       val (node, file) = pair
       val x = i + 1
@@ -42,8 +44,14 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
       println("[${x}/${total}] Installing ${pkg.id} (${pkg.version})")
       val info = file.packageInfo().shrink()
       val entry = info.toRawIndexEntry()
-      println(entry)
-      // keeper.install(listOf(file))
+      if (entry.lookup("P") != node.pkg.id) {
+        throw RuntimeException("Mismatch of package ${node.pkg.id} and file ${file.path.fullPathString} (${entry.lookup("P")})")
+      }
+      keeper.install(listOf(file))
     }
+
+    val resultingWorld = startWorldPackages.toMutableList()
+    wouldInstallWorld.forEach { item -> if (!resultingWorld.contains(item)) { resultingWorld.add(item) } }
+    keeper.provider.world.write(resultingWorld)
   }
 }

@@ -12,8 +12,11 @@ class ApkPackageKeeper(val provider: ApkProvider) {
   fun update() {
     provider.indexCollection.clean()
     provider.repositoryList.indexDownloadUrls.forEach { url ->
+      println("fetch $url")
       provider.indexCollection.download(url)
     }
+
+    provider.indexCollection
   }
 
   fun download(packages: Iterable<ApkIndexPackage>): List<ApkPackageFile> {

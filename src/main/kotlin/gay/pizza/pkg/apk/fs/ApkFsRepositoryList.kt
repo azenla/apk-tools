@@ -15,6 +15,8 @@ class ApkFsRepositoryList(val path: FsPath) : ApkRepositoryList {
   }
 
   fun reload() {
-    repositoryLines = path.readLinesToList().filter { it.trim().isNotBlank() }
+    repositoryLines = path.readLinesToList()
+      .filter { it.trim().isNotBlank() }
+      .filter { !it.startsWith("#") }
   }
 }

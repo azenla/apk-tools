@@ -10,4 +10,5 @@ class ApkProvider {
   lateinit var systemRootPath: FsPath
   lateinit var installedDatabase: ApkInstalledDatabase
   lateinit var world: ApkWorld
+  lateinit var arches: ApkSupportedArches
 }

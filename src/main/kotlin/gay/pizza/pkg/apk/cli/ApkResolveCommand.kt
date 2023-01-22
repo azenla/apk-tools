@@ -6,13 +6,14 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import gay.pizza.pkg.PlatformTaskPool
 import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
 import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {
-  val packages by argument("package").multiple(required = true)
+  val packages by argument("package").multiple()
   val keeper by requireObject<ApkPackageKeeper>()
 
   val justEdges by option("--just-edges", help = "Show Just Edges").flag()
@@ -20,14 +21,23 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val dotGraph by option("--dot-graph", help = "Output Dot Graph").flag()
   val installOrder by option("--install-order", help = "Show Install Order").flag()
   val parallelInstallOrder by option("--parallel-install-order", help = "Show Parallel Install Order").flag()
+  val trails by option("--trails", help = "Calculate Package Trails").flag()
+  val trailsUseDepth by option("--trails-use-depth", help = "Package Trails Use Depth").flag()
+  val validateSoundGraph by option("--validate-sound-graph", help = "Validate Sound Graph").flag()
 
   override fun run() {
-    keeper.update()
-
     val resolution = ApkIndexResolution(keeper.index)
     val graph = ApkPackageGraph(resolution)
 
+    if (validateSoundGraph) {
+      graph.indexGraph.validateSoundGraph(warn = true)
+    }
+
     for (name in packages) {
+      if (name == ":all") {
+        keeper.index.packages.forEach { graph.add(it) }
+        continue
+      }
       val pkg = keeper.index.packageById(name)
       graph.add(pkg)
     }
@@ -60,6 +70,13 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     if (justEdges) {
       for (edge in graph.edges) {
         println("${edge.first.pkg.id} -> ${edge.second.pkg.id}")
+      }
+      return
+    }
+
+    if (trails) {
+      graph.trails(trailsUseDepth) { trail ->
+        println(trail.map { it?.pkg?.id }.joinToString(" ") { it ?: "CYCLE" })
       }
       return
     }

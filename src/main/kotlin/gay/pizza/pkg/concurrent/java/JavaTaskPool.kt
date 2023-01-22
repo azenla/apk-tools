@@ -16,7 +16,7 @@ class JavaTaskPool(concurrency: Int) : TaskPool {
 
   override fun await() {
     while (pool.activeCount != 0) {
-      Thread.yield()
+      Thread.sleep(1000)
     }
   }
 

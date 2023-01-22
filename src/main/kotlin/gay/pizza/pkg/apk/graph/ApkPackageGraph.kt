@@ -1,9 +1,9 @@
 package gay.pizza.pkg.apk.graph
 
-import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
 import gay.pizza.pkg.apk.index.ApkIndexPackage
 import gay.pizza.pkg.apk.index.ApkIndexRequirementRef
 import gay.pizza.pkg.apk.index.ApkIndexResolution
+import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
 import gay.pizza.pkg.log.GlobalLogger
 
 class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
@@ -41,6 +41,37 @@ class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
       val child = local.addChild(chosen)
       edges.add(local to child)
       add(chosen)
+    }
+  }
+
+  fun trails(depth: Boolean = false): List<List<ApkPackageNode?>> {
+    val results = mutableListOf<List<ApkPackageNode?>>()
+    trails(depth) { results.add(it) }
+    return results
+  }
+
+  fun trails(depth: Boolean = false, handler: (List<ApkPackageNode?>) -> Unit) {
+    fun crawl(node: ApkPackageNode, trail: List<ApkPackageNode?>) {
+      if (trail.contains(node)) {
+        val resulting = trail.toMutableList().apply {
+          add(node)
+          add(null)
+        }
+        handler(resulting)
+        return
+      }
+      val resulting = trail.toMutableList().apply { add(node) }
+      val next = if (depth) node.parents else node.children
+      if (next.isNotEmpty()) {
+        for (item in next) {
+          crawl(item, resulting)
+        }
+      } else {
+        handler(resulting)
+      }
+    }
+    for (item in if (depth) deepIsolates else shallowIsolates) {
+      crawl(item, emptyList())
     }
   }
 
