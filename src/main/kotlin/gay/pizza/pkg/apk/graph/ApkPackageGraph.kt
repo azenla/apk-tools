@@ -6,7 +6,7 @@ import gay.pizza.pkg.apk.index.ApkIndexResolution
 import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
 import gay.pizza.pkg.log.GlobalLogger
 
-class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
+class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
   private val seen = mutableSetOf<ApkIndexPackage>()
   private val allNodes = mutableMapOf<ApkIndexPackage, ApkPackageNode>()
 
@@ -35,7 +35,7 @@ class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
 
     val local = node(pkg)
     for (spec in specs) {
-      val possibleSatisfactions = indexGraph.requirementToProvides[spec]
+      val possibleSatisfactions = indexResolution.requirementToProvides[spec]
         ?: throw ApkRequirementUnsatisfiedException(pkg, spec)
       val chosen = possibleSatisfactions.maxBy { it.providerPriority ?: -50 }
       val child = local.addChild(chosen)
@@ -76,7 +76,7 @@ class ApkPackageGraph(val indexGraph: ApkIndexResolution) {
   }
 
   fun clone(): ApkPackageGraph {
-    val copy = ApkPackageGraph(indexGraph)
+    val copy = ApkPackageGraph(indexResolution)
     for (pkg in allNodes.keys) {
       copy.node(pkg)
     }

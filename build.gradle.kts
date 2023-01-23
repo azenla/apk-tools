@@ -43,3 +43,13 @@ tasks.withType<Wrapper> {
 application {
   mainClass.set("gay.pizza.pkg.apk.cli.MainKt")
 }
+
+graalvmNative {
+  binaries {
+    named("main") {
+      imageName.set("apk-tools")
+      mainClass.set("gay.pizza.pkg.apk.cli.MainKt")
+      sharedLibrary.set(false)
+    }
+  }
+}
