@@ -10,6 +10,8 @@ import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
 import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
+import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
+import gay.pizza.pkg.log.GlobalLogger
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {
   val packages by argument("package").multiple()
@@ -38,7 +40,13 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     val graph = ApkPackageGraph(resolution)
 
     if (all) {
-      keeper.index.packages.forEach { graph.add(it) }
+      keeper.index.packages.forEach {
+        try {
+          graph.add(it)
+        } catch (e: ApkRequirementUnsatisfiedException) {
+          GlobalLogger.warn(e.message!!)
+        }
+      }
     }
 
     for (name in packages) {
