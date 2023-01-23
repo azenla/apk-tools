@@ -25,21 +25,23 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val validateSoundGraph by option("--validate-sound-graph", help = "Validate Sound Graph").flag()
   val onlyPrintStats by option("--just-stats", help = "Just Print Statistics").flag()
 
+  val all by option("--all", help = "All Packages").flag()
+
   val shell by option("--shell", help = "Graph Query Shell").flag()
 
   override fun run() {
     val resolution = ApkIndexResolution(keeper.index)
+    if (validateSoundGraph) {
+      resolution.validateSoundGraph(warn = true)
+    }
+
     val graph = ApkPackageGraph(resolution)
 
-    if (validateSoundGraph) {
-      graph.indexResolution.validateSoundGraph(warn = true)
+    if (all) {
+      keeper.index.packages.forEach { graph.add(it) }
     }
 
     for (name in packages) {
-      if (name == ":all") {
-        keeper.index.packages.forEach { graph.add(it) }
-        continue
-      }
       val pkg = keeper.index.packageById(name)
       graph.add(pkg)
     }
@@ -149,7 +151,7 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
         "trails" -> trails(graph)
         "edges" -> edges(graph)
         "dot-graph" -> dotGraph(graph)
-        "validate-index-graph" -> graph.indexResolution.validateSoundGraph(warn = true)
+        "validate-index-graph" -> resolution.validateSoundGraph(warn = true)
         "add" -> parts.drop(1).forEach { id -> graph.add(graph.indexResolution.index.packageById(id)) }
         "all" -> {
           for (pkg in graph.indexResolution.index.packages) {
