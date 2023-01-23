@@ -26,6 +26,7 @@ class ApkRawIndexEntry(
         "F" -> {
           if (entry != null) {
             entries.add(entry)
+            entry = null
           }
           entry = ApkModificationEntry(item.second)
         }
@@ -43,6 +44,11 @@ class ApkRawIndexEntry(
         }
       }
     }
+
+    if (entry != null) {
+      entries.add(entry)
+    }
+
     return entries
   }
 
