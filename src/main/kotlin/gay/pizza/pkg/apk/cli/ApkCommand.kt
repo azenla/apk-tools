@@ -5,7 +5,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import gay.pizza.pkg.PlatformPath
 import gay.pizza.pkg.apk.core.ApkProvider
-import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
+import gay.pizza.pkg.apk.frontend.ApkKeeper
 import gay.pizza.pkg.apk.fs.*
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.fsPath
@@ -32,6 +32,6 @@ class ApkCommand : CliktCommand(help = "Alpine Package Keeper", name = "apk", in
     provider.world = ApkFsWorld(worldFilePath.defaultSysrootRelative("etc/apk/world"))
     provider.arches = ApkFsSupportedArches(archesFilePath.defaultSysrootRelative("etc/apk/arch"))
     provider.systemRootPath = systemRootPath
-    currentContext.findOrSetObject { ApkPackageKeeper(provider) }
+    currentContext.findOrSetObject { provider }
   }
 }

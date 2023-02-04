@@ -14,9 +14,13 @@ object GlobalLogger {
     System.err.println("[DEBUG] $message")
   }
 
-  fun timed(name: String, block: () -> Unit) {
+  fun <T> timed(name: String, block: () -> T): T {
     debug("Started $name")
-    val time = measureTimeMillis(block)
+    var result: T
+    val time = measureTimeMillis {
+      result = block()
+    }
     debug("Finished $name in ${time}ms")
+    return result
   }
 }

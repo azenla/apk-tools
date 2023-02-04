@@ -44,13 +44,13 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     }
   }
 
-  fun trails(depth: Boolean = false): List<List<ApkPackageNode?>> {
+  fun trails(start: ApkPackageNode? = null, depth: Boolean = false): List<List<ApkPackageNode?>> {
     val results = mutableListOf<List<ApkPackageNode?>>()
-    trails(depth) { results.add(it) }
+    trails(start, depth = depth) { results.add(it) }
     return results
   }
 
-  fun trails(depth: Boolean = false, handler: (List<ApkPackageNode?>) -> Unit) {
+  fun trails(start: ApkPackageNode? = null, depth: Boolean = false, handler: (List<ApkPackageNode?>) -> Unit) {
     fun crawl(node: ApkPackageNode, trail: List<ApkPackageNode?>) {
       if (trail.contains(node)) {
         val resulting = trail.toMutableList().apply {
@@ -70,8 +70,13 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
         handler(resulting)
       }
     }
-    for (item in if (depth) deepIsolates else shallowIsolates) {
-      crawl(item, emptyList())
+
+    if (start != null) {
+      crawl(start, emptyList())
+    } else {
+      for (item in if (depth) deepIsolates else shallowIsolates) {
+        crawl(item, emptyList())
+      }
     }
   }
 
@@ -111,7 +116,7 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
       }
 
       if (resolving.contains(dependency)) {
-        GlobalLogger.warn("Cyclic dependency detected on ${dependency.pkg.id}, breaking cycle.")
+        GlobalLogger.warn("Cyclic dependency detected on ${dependency.pkg.id} (by ${node.pkg.id}), breaking cycle.")
         throw DependencyCycleBreakException
       }
 
@@ -120,10 +125,10 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
         try {
           simpleOrderSort(dependency, stack, resolving, visited, ignoring)
         } catch (e: DependencyCycleBreakException) {
-          stack.add(node)
-          ignoring.add(node)
+          stack.add(dependency)
+          ignoring.add(dependency)
           simpleOrderSort(dependency, stack, resolving, visited, ignoring)
-          ignoring.remove(node)
+          ignoring.remove(dependency)
         }
         resolving.remove(dependency)
         visited.add(dependency)
@@ -170,6 +175,12 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
       }
     }
     return result
+  }
+
+  fun flexibleOrderSort(): List<List<ApkPackageNode>> = try {
+    parallelOrderSort()
+  } catch (e: ApkCyclicDependencyException) {
+    simpleOrderSort().map { listOf(it) }
   }
 
   private object DependencyCycleBreakException : RuntimeException("Breaking Dependency Cycle")

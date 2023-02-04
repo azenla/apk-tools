@@ -6,16 +6,16 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import gay.pizza.pkg.apk.core.ApkProvider
+import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
-import gay.pizza.pkg.apk.graph.ApkPackageGraph
-import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
 import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
 import gay.pizza.pkg.log.GlobalLogger
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {
   val packages by argument("package").multiple()
-  val keeper by requireObject<ApkPackageKeeper>()
+  val provider by requireObject<ApkProvider>()
 
   val justEdges by option("--just-edges", help = "Show Just Edges").flag()
   val depthFirstSearch by option("--depth-first", help = "Depth First Crawl").flag()
@@ -27,12 +27,13 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val validateSoundGraph by option("--validate-sound-graph", help = "Validate Sound Graph").flag()
   val onlyPrintStats by option("--just-stats", help = "Just Print Statistics").flag()
 
+  val stress by option("--stress", help = "Stress Resolver").flag()
   val all by option("--all", help = "All Packages").flag()
 
   val shell by option("--shell", help = "Graph Query Shell").flag()
 
-  override fun run() {
-    val resolution = ApkIndexResolution(keeper.index)
+  fun buildResolutionAndGraph(): Pair<ApkIndexResolution, ApkPackageGraph> {
+    val resolution = ApkIndexResolution(provider.index)
     if (validateSoundGraph) {
       resolution.validateSoundGraph(warn = true)
     }
@@ -40,9 +41,9 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     val graph = ApkPackageGraph(resolution)
 
     if (all) {
-      keeper.index.packages.forEach {
+      provider.index.packages.forEach { pkg ->
         try {
-          graph.add(it)
+          graph.add(pkg)
         } catch (e: ApkRequirementUnsatisfiedException) {
           GlobalLogger.warn(e.message!!)
         }
@@ -50,9 +51,27 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     }
 
     for (name in packages) {
-      val pkg = keeper.index.packageById(name)
+      val pkg = provider.index.packageById(name)
       graph.add(pkg)
     }
+    return resolution to graph
+  }
+
+  override fun run() {
+    if (stress) {
+      while (true) {
+        val (_, graph) = GlobalLogger.timed("computing resolution and graph") {
+          buildResolutionAndGraph()
+        }
+
+        GlobalLogger.timed("simple install order sort") {
+          graph.simpleOrderSort()
+        }
+
+        System.gc()
+      }
+    }
+    val (resolution, graph) = buildResolutionAndGraph()
 
     if (installOrder) {
       installOrder(graph)
@@ -116,8 +135,8 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   }
 
   private fun trails(graph: ApkPackageGraph) {
-    graph.trails(trailsUseDepth) { trail ->
-      println(trail.map { it?.pkg?.id }.joinToString(" ") { it ?: "CYCLE" })
+    graph.trails(depth = trailsUseDepth) { trail ->
+      println(trail.joinToString(" ") { it?.pkg?.id ?: "CYCLE" })
     }
   }
 

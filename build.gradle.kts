@@ -25,6 +25,7 @@ dependencies {
   implementation("org.jetbrains.kotlin:kotlin-bom")
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+  implementation("com.charleskorn.kaml:kaml:0.50.0")
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
   implementation("com.zaxxer:nuprocess:2.0.6")
   implementation("org.apache.commons:commons-compress:1.22")

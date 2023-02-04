@@ -5,7 +5,7 @@ import gay.pizza.pkg.apk.file.ApkPackageFile
 import gay.pizza.pkg.apk.index.ApkIndex
 import gay.pizza.pkg.apk.index.ApkIndexPackage
 
-class ApkPackageKeeper(val provider: ApkProvider) {
+class ApkKeeper(val provider: ApkProvider) {
   val index: ApkIndex
     get() = provider.indexCollection.index
 

@@ -2,13 +2,13 @@ package gay.pizza.pkg.apk.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.requireObject
-import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
+import gay.pizza.pkg.apk.core.ApkProvider
 
 class ApkInspectInstalledCommand : CliktCommand(help = "Inspect Installed Database", name = "inspect-installed") {
-  val keeper by requireObject<ApkPackageKeeper>()
+  val provider by requireObject<ApkProvider>()
 
   override fun run() {
-    val index = keeper.provider.installedDatabase.read()
+    val index = provider.installedDatabase.read()
     for (entry in index.packages) {
       val modifications = entry.modifications()
       for (mod in modifications) {

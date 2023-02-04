@@ -4,24 +4,24 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
+import gay.pizza.pkg.apk.core.ApkProvider
 import gay.pizza.pkg.apk.file.ApkPackageFile
-import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
 import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
 
 class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
   val packages by argument("package").multiple(required = true)
-  val keeper by requireObject<ApkPackageKeeper>()
+  val provider by requireObject<ApkProvider>()
 
   override fun run() {
-    val resolution = ApkIndexResolution(keeper.index)
+    val resolution = ApkIndexResolution(provider.index)
     val graph = ApkPackageGraph(resolution)
 
-    val startWorldPackages = keeper.provider.world.read()
+    val startWorldPackages = provider.world.read()
 
     for (name in packages) {
-      val pkg = keeper.index.packageById(name)
+      val pkg = provider.index.packageById(name)
       graph.add(pkg)
     }
     val sorted = graph.simpleOrderSort()
@@ -32,7 +32,7 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
       val x = i + 1
       val pkg = node.pkg
       println("[${x}/${total}] Fetching ${pkg.id} (${pkg.version})")
-      val file = keeper.download(listOf(pkg)).single()
+      val file = provider.keeper.download(listOf(pkg)).single()
       files.add(node to file)
     }
 
@@ -47,11 +47,11 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
       if (entry.lookup("P") != node.pkg.id) {
         throw RuntimeException("Mismatch of package ${node.pkg.id} and file ${file.path.fullPathString} (${entry.lookup("P")})")
       }
-      keeper.install(listOf(file))
+      provider.keeper.install(listOf(file))
     }
 
     val resultingWorld = startWorldPackages.toMutableList()
     wouldInstallWorld.forEach { item -> if (!resultingWorld.contains(item)) { resultingWorld.add(item) } }
-    keeper.provider.world.write(resultingWorld)
+    provider.world.write(resultingWorld)
   }
 }

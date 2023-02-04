@@ -2,12 +2,12 @@ package gay.pizza.pkg.apk.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.requireObject
-import gay.pizza.pkg.apk.frontend.ApkPackageKeeper
+import gay.pizza.pkg.apk.core.ApkProvider
 
 class ApkUpdateCommand : CliktCommand(help = "Update Package Index", name = "update") {
-  val keeper by requireObject<ApkPackageKeeper>()
+  val provider by requireObject<ApkProvider>()
 
   override fun run() {
-    keeper.update()
+    provider.keeper.update()
   }
 }
