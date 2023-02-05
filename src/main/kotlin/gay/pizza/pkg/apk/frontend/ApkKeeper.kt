@@ -10,13 +10,14 @@ class ApkKeeper(val provider: ApkProvider) {
     get() = provider.indexCollection.index
 
   fun update() {
+    val arches = provider.arches.read()
     provider.indexCollection.clean()
-    provider.repositoryList.indexDownloadUrls.forEach { url ->
+    provider.repositoryList.repositories.flatMap { baseUrl ->
+      arches.map { arch -> "$baseUrl/$arch/APKINDEX.tar.gz" }
+    }.forEach { url ->
       println("fetch $url")
       provider.indexCollection.download(url)
     }
-
-    provider.indexCollection
   }
 
   fun download(packages: Iterable<ApkIndexPackage>): List<ApkPackageFile> {

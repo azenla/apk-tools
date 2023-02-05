@@ -183,5 +183,22 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     simpleOrderSort().map { listOf(it) }
   }
 
+  fun annotatedParallelOrderSort(): List<List<Pair<ApkPackageNode, List<ApkPackageNode>>>> {
+    val parallel = parallelOrderSort()
+
+    val results = mutableListOf<MutableList<Pair<ApkPackageNode, List<ApkPackageNode>>>>()
+    val visited = mutableSetOf<ApkPackageNode>()
+    for (set in parallel) {
+      val resultSet = mutableListOf<Pair<ApkPackageNode, List<ApkPackageNode>>>()
+      for (item in set) {
+        val wanted = visited.filter { it.parents.contains(item) }
+        resultSet.add(item to wanted)
+      }
+      results.add(resultSet)
+      visited.addAll(set)
+    }
+    return results
+  }
+
   private object DependencyCycleBreakException : RuntimeException("Breaking Dependency Cycle")
 }

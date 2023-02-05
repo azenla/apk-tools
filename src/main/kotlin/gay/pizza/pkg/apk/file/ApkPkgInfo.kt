@@ -1,5 +1,6 @@
 package gay.pizza.pkg.apk.file
 
+import gay.pizza.pkg.apk.index.ApkIndexPackage
 import gay.pizza.pkg.apk.index.ApkRawIndexEntry
 
 class ApkPkgInfo(val items: List<Pair<String, String>>) {
@@ -50,6 +51,8 @@ class ApkPkgInfo(val items: List<Pair<String, String>>) {
     }
     return ApkRawIndexEntry(result.map { it.key to it.value })
   }
+
+  fun toIndexPackage(): ApkIndexPackage = ApkIndexPackage.extract(toRawIndexEntry())
 
   override fun toString(): String = "PKGINFO(${items})"
 }

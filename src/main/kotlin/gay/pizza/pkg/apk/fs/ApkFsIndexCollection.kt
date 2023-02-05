@@ -8,10 +8,14 @@ import gay.pizza.pkg.io.delete
 import gay.pizza.pkg.io.isDirectory
 import gay.pizza.pkg.io.java.toJavaPath
 import gay.pizza.pkg.io.list
+import java.net.URI
 import java.net.URL
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse.BodyHandlers
 import kotlin.io.path.outputStream
 
-class ApkFsIndexCollection(val path: FsPath) : ApkIndexCollection {
+class ApkFsIndexCollection(val path: FsPath, val httpClient: HttpClient) : ApkIndexCollection {
   private var _indexes = mutableListOf<ApkIndexFile>()
 
   val indexFiles: List<ApkIndexFile>
@@ -36,13 +40,19 @@ class ApkFsIndexCollection(val path: FsPath) : ApkIndexCollection {
   }
 
   override fun download(url: String) {
-    val javaUrl = URL(url)
-    val stream = javaUrl.openStream()
-    val indexDownloadPath = path.resolve("APKINDEX.${javaUrl.hashCode()}.tar.gz")
-    val out = indexDownloadPath.toJavaPath().outputStream()
-    stream.copyTo(out)
-    stream.close()
-    out.close()
+    val hashCode = url.hashCode()
+    val hex = hashCode.toString(16).replace("-", "n")
+    val indexDownloadPath = path.resolve("APKINDEX.${hex}.tar.gz")
+    val request = HttpRequest.newBuilder()
+      .GET()
+      .uri(URI.create(url))
+      .header("User-Agent", "apk-tools-kotlin/1.0")
+      .build()
+    val response = httpClient.send(request, BodyHandlers.ofFile(indexDownloadPath.toJavaPath()))
+    if (response.statusCode() != 200) {
+      indexDownloadPath.delete()
+      throw RuntimeException("Index download of $url failed (Status Code ${response.statusCode()})")
+    }
     _indexes.add(ApkIndexFile(indexDownloadPath))
   }
 

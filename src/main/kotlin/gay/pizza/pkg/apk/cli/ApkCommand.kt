@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import gay.pizza.pkg.PlatformPath
 import gay.pizza.pkg.apk.core.ApkProvider
-import gay.pizza.pkg.apk.frontend.ApkKeeper
 import gay.pizza.pkg.apk.fs.*
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.fsPath
@@ -26,8 +25,14 @@ class ApkCommand : CliktCommand(help = "Alpine Package Keeper", name = "apk", in
 
     val provider = ApkProvider()
     provider.repositoryList = ApkFsRepositoryList(repositoryFilePath.defaultSysrootRelative("etc/apk/repositories"))
-    provider.packageCache = ApkFsPackageCache(packageCachePath.defaultSysrootRelative("var/cache/apk"))
-    provider.indexCollection = ApkFsIndexCollection(packageCachePath.defaultSysrootRelative("var/cache/apk"))
+    provider.packageCache = ApkFsPackageCache(
+      packageCachePath.defaultSysrootRelative("var/cache/apk"),
+      httpClient = provider.httpClient
+    )
+    provider.indexCollection = ApkFsIndexCollection(
+      packageCachePath.defaultSysrootRelative("var/cache/apk"),
+      httpClient = provider.httpClient
+    )
     provider.installedDatabase = ApkFsInstalledDatabase(installedDatabasePath.defaultSysrootRelative("lib/apk/db/installed"))
     provider.world = ApkFsWorld(worldFilePath.defaultSysrootRelative("etc/apk/world"))
     provider.arches = ApkFsSupportedArches(archesFilePath.defaultSysrootRelative("etc/apk/arch"))

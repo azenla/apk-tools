@@ -6,5 +6,8 @@ fun main(args: Array<String>) = ApkCommand().subcommands(
   ApkUpdateCommand(),
   ApkResolveCommand(),
   ApkAddCommand(),
-  ApkInspectInstalledCommand()
+  ApkInspectInstalledCommand(),
+  ApkDownloadCommand(),
+  ApkFsCalculatorCommand(),
+  ApkIndexCommand()
 ).main(args)

@@ -22,6 +22,9 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
   val dotGraph by option("--dot-graph", help = "Output Dot Graph").flag()
   val installOrder by option("--install-order", help = "Show Install Order").flag()
   val parallelInstallOrder by option("--parallel-install-order", help = "Show Parallel Install Order").flag()
+  val parallelInstallOrderDotGraph by option("--parallel-install-order-dot-graph", help = "Show Parallel Install Order Dot Graph").flag()
+  val annotatedParallelInstallOrder by option("--annotated-parallel-install-order", help = "Show Annotated Parallel Install Order").flag()
+
   val trails by option("--trails", help = "Calculate Package Trails").flag()
   val trailsUseDepth by option("--trails-use-depth", help = "Package Trails Use Depth").flag()
   val validateSoundGraph by option("--validate-sound-graph", help = "Validate Sound Graph").flag()
@@ -83,7 +86,18 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
       return
     }
 
+    if (annotatedParallelInstallOrder) {
+      annotatedParallelInstallOrder(graph)
+      return
+    }
+
     if (dotGraph) {
+      dotGraph(graph)
+      return
+    }
+
+    if (parallelInstallOrderDotGraph) {
+      parallelInstallDotGraph(graph)
       return
     }
 
@@ -106,6 +120,8 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
       shell(resolution, graph)
       return
     }
+
+    crawl(graph)
   }
 
   private fun installOrder(graph: ApkPackageGraph) {
@@ -120,10 +136,36 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     }
   }
 
+  private fun annotatedParallelInstallOrder(graph: ApkPackageGraph) {
+    val installation = graph.annotatedParallelOrderSort()
+    for (set in installation) {
+      println(set.joinToString(" ") { item -> "${item.first.pkg.id} [${item.second.joinToString(" ") { it.pkg.id }}]" })
+    }
+  }
+
   private fun dotGraph(graph: ApkPackageGraph) {
     println("digraph D {")
     for (edge in graph.edges) {
       println("  \"${edge.first.pkg.id}\" -> \"${edge.second.pkg.id}\"")
+    }
+    println("}")
+  }
+
+  private fun parallelInstallDotGraph(graph: ApkPackageGraph) {
+    println("graph D {")
+    val installation = graph.parallelOrderSort()
+    for (set in installation) {
+      var previous: ApkPackageNode? = null
+      for (item in set) {
+        if (previous != null) {
+          println("  \"${previous.pkg.id}\" -- \"${item.pkg.id}\"")
+        }
+        previous = item
+      }
+
+      if (set.size == 1) {
+        println("  \"${set.first().pkg.id}\"")
+      }
     }
     println("}")
   }
@@ -173,6 +215,7 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
       when (parts[0]) {
         "install-order" -> installOrder(graph)
         "parallel-install-order" -> parallelInstallOrder(graph)
+        "annotated-parallel-install-order" -> annotatedParallelInstallOrder(graph)
         "crawl" -> crawl(graph)
         "stats" -> stats(graph)
         "trails" -> trails(graph)
