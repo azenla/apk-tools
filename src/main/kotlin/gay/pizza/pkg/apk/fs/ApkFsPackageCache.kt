@@ -2,6 +2,7 @@ package gay.pizza.pkg.apk.fs
 
 import gay.pizza.pkg.apk.core.ApkPackageCache
 import gay.pizza.pkg.apk.core.ApkRepositoryList
+import gay.pizza.pkg.apk.core.ApkSupportedArches
 import gay.pizza.pkg.apk.file.ApkPackageFile
 import gay.pizza.pkg.apk.index.ApkIndexPackage
 import gay.pizza.pkg.apk.index.ApkPackageNotFoundException
@@ -19,12 +20,15 @@ class ApkFsPackageCache(val path: FsPath, val fetcher: ContentFetcher, val force
     }
   }
 
-  override fun acquire(pkg: ApkIndexPackage, repositoryList: ApkRepositoryList): ApkPackageFile {
+  override fun acquire(pkg: ApkIndexPackage, repositoryList: ApkRepositoryList, arches: ApkSupportedArches): ApkPackageFile {
     val packageFilePath = path.resolve(pkg.downloadFileName)
     if (packageFilePath.exists() && !forceDownload) {
       return ApkPackageFile(packageFilePath)
     }
-    val potentialUrls = repositoryList.repositories.map { "${it}/${pkg.downloadFileName}" }
+    val archList = arches.read()
+    val potentialUrls = repositoryList.repositories.flatMap { repo ->
+      archList.map { arch -> "$repo/$arch" }
+    }.map { "${it}/${pkg.downloadFileName}" }
     for (url in potentialUrls) {
       try {
         return ApkPackageFile.download(url, packageFilePath, fetcher = fetcher)

@@ -3,7 +3,9 @@ package gay.pizza.pkg.apk.file
 import gay.pizza.pkg.PlatformProcessSpawner
 import gay.pizza.pkg.apk.core.ApkDataReader
 import gay.pizza.pkg.apk.core.entries
+import gay.pizza.pkg.apk.index.ApkPackageNotFoundException
 import gay.pizza.pkg.fetch.ContentFetcher
+import gay.pizza.pkg.fetch.ContentNotFoundException
 import gay.pizza.pkg.fetch.FetchRequest
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.java.toJavaPath
@@ -59,7 +61,11 @@ class ApkPackageFile(val path: FsPath) {
 
   companion object {
     fun download(url: String, to: FsPath, fetcher: ContentFetcher): ApkPackageFile {
-      fetcher.download(FetchRequest(url, userAgent = "apk-tools-kotlin/1.0"), to)
+      try {
+        fetcher.download(FetchRequest(url, userAgent = "apk-tools-kotlin/1.0"), to)
+      } catch (e: ContentNotFoundException) {
+        throw ApkPackageNotFoundException(e.request.url)
+      }
       return ApkPackageFile(to)
     }
   }

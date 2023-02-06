@@ -23,7 +23,7 @@ class ApkKeeper(val provider: ApkProvider) {
   fun download(packages: Iterable<ApkIndexPackage>): List<ApkPackageFile> {
     val files = mutableListOf<ApkPackageFile>()
     for (pkg in packages) {
-      val file = provider.packageCache.acquire(pkg, provider.repositoryList)
+      val file = provider.packageCache.acquire(pkg, provider.repositoryList, provider.arches)
       files.add(file)
     }
     return files

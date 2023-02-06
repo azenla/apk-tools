@@ -1,6 +1,7 @@
 package gay.pizza.pkg.fetch.java
 
 import gay.pizza.pkg.fetch.ContentFetcher
+import gay.pizza.pkg.fetch.ContentNotFoundException
 import gay.pizza.pkg.fetch.FetchRequest
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.delete
@@ -32,6 +33,10 @@ class JavaContentFetcher(val httpClient: HttpClient = HttpClient.newHttpClient()
     val response = httpClient.send(request, bodyHandler)
     if (response.statusCode() != 200) {
       fail()
+
+      if (response.statusCode() == 404) {
+        throw ContentNotFoundException(fetch)
+      }
       throw RuntimeException("Fetch of ${fetch.url} failed (Status Code ${response.statusCode()})")
     }
     return response.body()
