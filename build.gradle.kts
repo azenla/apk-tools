@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   application
-  antlr
 
   kotlin("jvm") version "1.8.0"
   kotlin("plugin.serialization") version "1.8.0"
@@ -27,10 +26,13 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
   implementation("com.charleskorn.kaml:kaml:0.50.0")
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
+
+  implementation("io.ktor:ktor-client-core:2.2.3")
+  implementation("io.ktor:ktor-client-cio:2.2.3")
+
   implementation("com.zaxxer:nuprocess:2.0.6")
   implementation("org.apache.commons:commons-compress:1.22")
   implementation("me.tongfei:progressbar:0.9.5")
-  antlr("org.antlr:antlr4:4.11.1")
 }
 
 tasks.withType<KotlinCompile> {

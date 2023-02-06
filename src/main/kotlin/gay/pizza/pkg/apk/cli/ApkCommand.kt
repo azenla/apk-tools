@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import gay.pizza.pkg.PlatformPath
 import gay.pizza.pkg.apk.core.ApkProvider
 import gay.pizza.pkg.apk.fs.*
+import gay.pizza.pkg.fetch.java.JavaContentFetcher
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.fsPath
 
@@ -23,15 +24,17 @@ class ApkCommand : CliktCommand(help = "Alpine Package Keeper", name = "apk", in
       return systemRootPath.resolve(path)
     }
 
+    val fetcher = JavaContentFetcher()
     val provider = ApkProvider()
+    provider.fetcher = fetcher
     provider.repositoryList = ApkFsRepositoryList(repositoryFilePath.defaultSysrootRelative("etc/apk/repositories"))
     provider.packageCache = ApkFsPackageCache(
       packageCachePath.defaultSysrootRelative("var/cache/apk"),
-      httpClient = provider.httpClient
+      fetcher = provider.fetcher
     )
     provider.indexCollection = ApkFsIndexCollection(
       packageCachePath.defaultSysrootRelative("var/cache/apk"),
-      httpClient = provider.httpClient
+      fetcher = provider.fetcher
     )
     provider.installedDatabase = ApkFsInstalledDatabase(installedDatabasePath.defaultSysrootRelative("lib/apk/db/installed"))
     provider.world = ApkFsWorld(worldFilePath.defaultSysrootRelative("etc/apk/world"))

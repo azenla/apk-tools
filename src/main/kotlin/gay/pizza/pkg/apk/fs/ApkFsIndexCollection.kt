@@ -3,19 +3,14 @@ package gay.pizza.pkg.apk.fs
 import gay.pizza.pkg.apk.index.ApkIndex
 import gay.pizza.pkg.apk.index.ApkIndexCollection
 import gay.pizza.pkg.apk.index.ApkIndexFile
+import gay.pizza.pkg.fetch.ContentFetcher
+import gay.pizza.pkg.fetch.FetchRequest
 import gay.pizza.pkg.io.FsPath
 import gay.pizza.pkg.io.delete
 import gay.pizza.pkg.io.isDirectory
-import gay.pizza.pkg.io.java.toJavaPath
 import gay.pizza.pkg.io.list
-import java.net.URI
-import java.net.URL
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse.BodyHandlers
-import kotlin.io.path.outputStream
 
-class ApkFsIndexCollection(val path: FsPath, val httpClient: HttpClient) : ApkIndexCollection {
+class ApkFsIndexCollection(val path: FsPath, val fetcher: ContentFetcher) : ApkIndexCollection {
   private var _indexes = mutableListOf<ApkIndexFile>()
 
   val indexFiles: List<ApkIndexFile>
@@ -43,16 +38,8 @@ class ApkFsIndexCollection(val path: FsPath, val httpClient: HttpClient) : ApkIn
     val hashCode = url.hashCode()
     val hex = hashCode.toString(16).replace("-", "n")
     val indexDownloadPath = path.resolve("APKINDEX.${hex}.tar.gz")
-    val request = HttpRequest.newBuilder()
-      .GET()
-      .uri(URI.create(url))
-      .header("User-Agent", "apk-tools-kotlin/1.0")
-      .build()
-    val response = httpClient.send(request, BodyHandlers.ofFile(indexDownloadPath.toJavaPath()))
-    if (response.statusCode() != 200) {
-      indexDownloadPath.delete()
-      throw RuntimeException("Index download of $url failed (Status Code ${response.statusCode()})")
-    }
+    val request = FetchRequest(url, userAgent = "apk-tools-kotlin/1.0")
+    fetcher.download(request, indexDownloadPath)
     _indexes.add(ApkIndexFile(indexDownloadPath))
   }
 
