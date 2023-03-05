@@ -44,19 +44,11 @@ class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name =
     val graph = ApkPackageGraph(resolution)
 
     if (all) {
-      provider.index.packages.forEach { pkg ->
-        try {
-          graph.add(pkg)
-        } catch (e: ApkRequirementUnsatisfiedException) {
-          GlobalLogger.warn(e.message!!)
-        }
-      }
+      graph.addAll(provider.index.packages)
     }
 
-    for (name in packages) {
-      val pkg = provider.index.packageById(name)
-      graph.add(pkg)
-    }
+    val indexPackages = packages.map { provider.index.packageById(it) }
+    graph.addAll(indexPackages)
     return resolution to graph
   }
 

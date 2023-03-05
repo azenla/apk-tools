@@ -20,10 +20,9 @@ class ApkAddCommand : CliktCommand(help = "Add Packages", name = "add") {
 
     val startWorldPackages = provider.world.read()
 
-    for (name in packages) {
-      val pkg = provider.index.packageById(name)
-      graph.add(pkg)
-    }
+    val indexPackages = packages.map { provider.index.packageById(it) }
+    graph.addAll(indexPackages)
+
     val sorted = graph.simpleOrderSort()
     val total = sorted.size
 

@@ -35,12 +35,21 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
 
     val local = node(pkg)
     for (spec in specs) {
+      if (spec.invert) {
+        continue
+      }
       val possibleSatisfactions = indexResolution.requirementToProvides[spec]
         ?: throw ApkRequirementUnsatisfiedException(pkg, spec)
       val chosen = possibleSatisfactions.maxBy { it.providerPriority ?: -50 }
       val child = local.addChild(chosen)
       edges.add(local to child)
       add(chosen)
+    }
+  }
+
+  fun addAll(packages: Iterable<ApkIndexPackage>) {
+    for (pkg in packages) {
+      add(pkg)
     }
   }
 

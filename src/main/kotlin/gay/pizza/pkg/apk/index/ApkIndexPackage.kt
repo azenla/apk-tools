@@ -15,7 +15,7 @@ class ApkIndexPackage(
   val buildTime: Long? = null,
   val commit: String? = null,
   val providerPriority: Int? = null,
-  val dependencies: List<ApkIndexPackageDependency>,
+  val dependencies: List<ApkIndexDependency>,
   val provides: List<ApkIndexPackageProvide>,
   val installIf: List<ApkIndexPackageInstallIf>,
   val raw: ApkRawIndexEntry
@@ -61,7 +61,7 @@ class ApkIndexPackage(
         buildTime = buildTime,
         commit = commit,
         providerPriority = providerPriority,
-        dependencies = dependencies.mapNotNull { dependency -> ApkIndexPackageDependency.extract(dependency) },
+        dependencies = dependencies.mapNotNull { dependency -> ApkIndexDependency.extract(dependency) },
         provides = provides.mapNotNull { provide -> ApkIndexPackageProvide.extract(provide) },
         installIf = installIf.map { ins -> ApkIndexPackageInstallIf.extract(ins) },
         raw = entry

@@ -2,7 +2,7 @@ package gay.pizza.pkg.apk.fs
 
 import gay.pizza.pkg.apk.core.ApkPackageCache
 import gay.pizza.pkg.apk.core.ApkRepositoryList
-import gay.pizza.pkg.apk.core.ApkSupportedArches
+import gay.pizza.pkg.apk.core.ApkArchitecture
 import gay.pizza.pkg.apk.file.ApkPackageFile
 import gay.pizza.pkg.apk.index.ApkIndexPackage
 import gay.pizza.pkg.apk.index.ApkPackageNotFoundException
@@ -20,7 +20,7 @@ class ApkFsPackageCache(val path: FsPath, val fetcher: ContentFetcher, val force
     }
   }
 
-  override fun acquire(pkg: ApkIndexPackage, repositoryList: ApkRepositoryList, arches: ApkSupportedArches): ApkPackageFile {
+  override fun acquire(pkg: ApkIndexPackage, repositoryList: ApkRepositoryList, arches: ApkArchitecture): ApkPackageFile {
     val packageFilePath = path.resolve(pkg.downloadFileName)
     if (packageFilePath.exists() && !forceDownload) {
       return ApkPackageFile(packageFilePath)

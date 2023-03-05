@@ -14,7 +14,6 @@ class ApkFsCalculator {
     }
   }
 
-  fun conflict(path: String) {
-    //println("CONFLICT $path")
-  }
+  @Suppress("UNUSED_PARAMETER")
+  fun conflict(path: String) {}
 }

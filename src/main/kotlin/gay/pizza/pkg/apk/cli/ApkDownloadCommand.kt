@@ -18,15 +18,12 @@ class ApkDownloadCommand : CliktCommand(help = "Download Packages", name = "down
 
   override fun run() {
     val graph = provider.createPackageGraph()
-    for (name in packages) {
-      val pkg = provider.index.packageById(name)
-      graph.add(pkg)
-    }
+
+    val indexPackages = packages.map { provider.index.packageById(it) }
+    graph.addAll(indexPackages)
 
     if (all) {
-      provider.index.packages.forEach { pkg ->
-        graph.add(pkg)
-      }
+      graph.addAll(provider.index.packages)
     }
 
     val sorted = graph.simpleOrderSort()
