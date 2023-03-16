@@ -150,40 +150,64 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
   }
 
   fun parallelOrderSort(): List<List<ApkPackageNode>> {
-    var data = nodes.mapKeys { node(it.key) }.mapValues {
+    val results = mutableListOf<List<ApkPackageNode>>()
+
+    // Create a mutable map of all nodes to all of their children in a set.
+    var working = nodes.mapKeys { node(it.key) }.mapValues {
       it.value.children.toMutableSet()
     }.toMutableMap()
 
-    data.forEach { entry ->
+    // Remove any self dependencies (node that depends on itself)
+    working.forEach { entry ->
       entry.value.remove(entry.key)
     }
 
-    val extraItems = data.values.reduce { a, b ->
+    // Collect all child nodes that are not already in the node map.
+    // This should be empty every time in this code.
+    val extraNodes = working.values.reduce { a, b ->
       a.union(b).toMutableSet()
-    } - data.keys.toSet()
-    data.putAll(extraItems.map { it to mutableSetOf() })
-    val result = mutableListOf<List<ApkPackageNode>>()
-    mloop@ while (true) {
-      iloop@ while (true) {
-        val ordered = data.filter { (_, v) -> v.isEmpty() }.map { (k, _) -> k }
-        if (ordered.isEmpty()) {
-          break@iloop
-        }
+    } - working.keys.toSet()
 
-        result.add(ordered)
-        data = data.filter { (k, _) -> !ordered.contains(k) }
-          .map { (k, v) -> v.removeAll(ordered.toSet()); k to v }
-          .toMap()
-          .toMutableMap()
-      }
+    assert(extraNodes.isEmpty())
 
-      if (data.isNotEmpty()) {
-        throw ApkCyclicDependencyException("Cyclic dependency exists:\n${data.map { entry -> entry.value.joinToString(", ") { it.pkg.id } }.joinToString("\n")}")
-      } else {
-        break@mloop
+    // Put all the extra nodes into the working set, mapped to
+    // an empty mutable set.
+    working.putAll(extraNodes.map { it to mutableSetOf() })
+
+    while (true) {
+      // All nodes whose dependencies are now satisfied.
+      val set = working.entries
+        .filter { (_, children) -> children.isEmpty() }
+        .map { (node, _) -> node }
+      // If nothing was satisfied this loop, exit the loop.
+      // If there are entries to be left, they will be dealt
+      // with before the method returns.
+      if (set.isEmpty()) {
+        break
       }
+      // Add this installation set to the list of installation sets.
+      results.add(set)
+
+      // Filter the working set for anything that wasn't dealt
+      // with this iteration.
+      // Create a new map from those entries where the dependencies
+      // are freed from anything already handled.
+      working = working.filter { (node, _) ->
+        !set.contains(node)
+      }.map { (node, value) ->
+        value.removeAll(set.toSet())
+        node to value
+      }.toMap().toMutableMap()
     }
-    return result
+
+    // Check if a dependency cycle was found, which happens when nothing
+    // was removed from the working set, yet things are still left over.
+    // TODO(azenla): Resolve dependency loop via forced parallel installation.
+    if (working.isNotEmpty()) {
+      throw ApkCyclicDependencyException(
+        "Cyclic dependency exists:\n${working.map { entry -> entry.value.joinToString(", ") { it.pkg.id } }.joinToString("\n")}")
+    }
+    return results
   }
 
   fun flexibleOrderSort(): List<List<ApkPackageNode>> = try {
