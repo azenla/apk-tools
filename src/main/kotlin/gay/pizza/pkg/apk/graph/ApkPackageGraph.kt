@@ -24,16 +24,17 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
   fun node(pkg: ApkIndexPackage): ApkPackageNode =
     allNodes.getOrPut(pkg) { ApkPackageNode(this, pkg) }
 
-  fun add(pkg: ApkIndexPackage) {
+  fun add(pkg: ApkIndexPackage, filter: (ApkPackageNode) -> Boolean = { true }) {
     if (seen.contains(pkg)) {
       return
     }
     seen.add(pkg)
 
+    val local = node(pkg)
+
     val specs = mutableSetOf<ApkIndexRequirementRef>()
     specs.addAll(pkg.dependencies)
 
-    val local = node(pkg)
     for (spec in specs) {
       if (spec.invert) {
         continue
@@ -42,14 +43,16 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
         ?: throw ApkRequirementUnsatisfiedException(pkg, spec)
       val chosen = possibleSatisfactions.maxBy { it.providerPriority ?: -50 }
       val child = local.addChild(chosen)
-      edges.add(local to child)
-      add(chosen)
+      if (filter(local)) {
+        edges.add(local to child)
+      }
+      add(chosen, filter)
     }
   }
 
-  fun addAll(packages: Iterable<ApkIndexPackage>) {
+  fun addAll(packages: Iterable<ApkIndexPackage>, filter: (ApkPackageNode) -> Boolean = { true }) {
     for (pkg in packages) {
-      add(pkg)
+      add(pkg, filter)
     }
   }
 
@@ -103,13 +106,13 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     return copy
   }
 
-  fun simpleOrderSort(): List<ApkPackageNode> {
+  fun simpleOrderSort(healCycle: Boolean = true): List<ApkPackageNode> {
     val stack = mutableListOf<ApkPackageNode>()
     val resolving = mutableSetOf<ApkPackageNode>()
     val visited = mutableSetOf<ApkPackageNode>()
     val ignoring = mutableSetOf<ApkPackageNode>()
     for (node in shallowIsolates) {
-      simpleOrderSort(node, stack, resolving, visited, ignoring)
+      simpleOrderSort(node, stack, resolving, visited, ignoring, healCycle)
     }
     return stack
   }
@@ -118,7 +121,8 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
                               stack: MutableList<ApkPackageNode>,
                               resolving: MutableSet<ApkPackageNode>,
                               visited: MutableSet<ApkPackageNode>,
-                              ignoring: MutableSet<ApkPackageNode>) {
+                              ignoring: MutableSet<ApkPackageNode>,
+                              healCycle: Boolean) {
     for (dependency in node.children) {
       if (ignoring.contains(dependency)) {
         continue
@@ -126,17 +130,20 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
 
       if (resolving.contains(dependency)) {
         GlobalLogger.warn("Cyclic dependency detected on ${dependency.pkg.id} (by ${node.pkg.id}), breaking cycle.")
-        throw DependencyCycleBreakException
+        throw DependencyCycleBreakException(node, dependency)
       }
 
       if (!visited.contains(dependency)) {
         resolving.add(dependency)
         try {
-          simpleOrderSort(dependency, stack, resolving, visited, ignoring)
+          simpleOrderSort(dependency, stack, resolving, visited, ignoring, healCycle)
         } catch (e: DependencyCycleBreakException) {
+          if (!healCycle) {
+            throw e
+          }
           stack.add(dependency)
           ignoring.add(dependency)
-          simpleOrderSort(dependency, stack, resolving, visited, ignoring)
+          simpleOrderSort(dependency, stack, resolving, visited, ignoring, healCycle)
           ignoring.remove(dependency)
         }
         resolving.remove(dependency)
@@ -149,7 +156,32 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     }
   }
 
-  fun parallelOrderSort(): List<List<ApkPackageNode>> {
+  fun findDependencyCycle(node: ApkPackageNode): Pair<ApkPackageNode, ApkPackageNode>? {
+    val resolving = mutableSetOf<ApkPackageNode>()
+    val visited = mutableSetOf<ApkPackageNode>()
+    return findDependencyCycle(node, resolving, visited)
+  }
+
+  fun findDependencyCycle(node: ApkPackageNode, resolving: MutableSet<ApkPackageNode>, visited: MutableSet<ApkPackageNode>): Pair<ApkPackageNode, ApkPackageNode>? {
+    for (dependency in node.children) {
+      if (resolving.contains(dependency)) {
+        return node to dependency
+      }
+
+      if (!visited.contains(dependency)) {
+        resolving.add(dependency)
+        val cycle = findDependencyCycle(dependency, resolving, visited)
+        if (cycle != null) {
+          return cycle
+        }
+        resolving.remove(dependency)
+        visited.add(dependency)
+      }
+    }
+    return null
+  }
+
+  fun parallelOrderSort(breakCycles: Boolean = true): List<List<ApkPackageNode>> {
     val results = mutableListOf<List<ApkPackageNode>>()
 
     // Create a mutable map of all nodes to all of their children in a set.
@@ -176,14 +208,31 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
 
     while (true) {
       // All nodes whose dependencies are now satisfied.
-      val set = working.entries
+      var set = working.entries
         .filter { (_, children) -> children.isEmpty() }
         .map { (node, _) -> node }
-      // If nothing was satisfied this loop, exit the loop.
-      // If there are entries to be left, they will be dealt
-      // with before the method returns.
+      // If nothing was satisfied this loop, check for cycles.
+      // If no cycles exist and the working set is empty,
+      // the resolution is complete, and we can break the loop.
       if (set.isEmpty()) {
-        break
+        if (working.isEmpty()) {
+          break
+        }
+
+        // Calculate all dependency cycles.
+        // Distinct is used here to be sure duplicate cycles
+        // which are found via multiple paths are de-duped.
+        val cycles = working.keys.mapNotNull { node -> findDependencyCycle(node) }.distinct()
+
+        // If cycle breaking isn't enabled, we should throw an exception.
+        if (!breakCycles) {
+          val cycleMessages = cycles.map { (node, dependency) -> "${node.pkg.id} -> ${dependency.pkg.id}" }
+          throw ApkCyclicDependencyException("Dependency cycles found:\n${cycleMessages.joinToString("\n")}")
+        }
+
+        // Break cycles by setting the new resolution set to
+        // the dependencies that cycled.
+        set = cycles.map { (_, dependency) -> dependency }
       }
       // Add this installation set to the list of installation sets.
       results.add(set)
@@ -200,13 +249,6 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
       }.toMap().toMutableMap()
     }
 
-    // Check if a dependency cycle was found, which happens when nothing
-    // was removed from the working set, yet things are still left over.
-    // TODO(azenla): Resolve dependency loop via forced parallel installation.
-    if (working.isNotEmpty()) {
-      throw ApkCyclicDependencyException(
-        "Cyclic dependency exists:\n${working.map { entry -> entry.value.joinToString(", ") { it.pkg.id } }.joinToString("\n")}")
-    }
     return results
   }
 
@@ -233,5 +275,4 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     return results
   }
 
-  private object DependencyCycleBreakException : RuntimeException("Breaking Dependency Cycle")
 }
