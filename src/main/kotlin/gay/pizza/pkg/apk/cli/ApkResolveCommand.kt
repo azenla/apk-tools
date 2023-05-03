@@ -10,7 +10,6 @@ import gay.pizza.pkg.apk.core.ApkProvider
 import gay.pizza.pkg.apk.graph.ApkPackageGraph
 import gay.pizza.pkg.apk.graph.ApkPackageNode
 import gay.pizza.pkg.apk.index.ApkIndexResolution
-import gay.pizza.pkg.apk.index.ApkRequirementUnsatisfiedException
 import gay.pizza.pkg.log.GlobalLogger
 
 class ApkResolveCommand : CliktCommand(help = "Resolve Dependency Graph", name = "resolve") {

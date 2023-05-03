@@ -26,16 +26,6 @@ class ApkDownloadCommand : CliktCommand(help = "Download Packages", name = "down
       graph.addAll(provider.index.packages)
     }
 
-    val sorted = graph.simpleOrderSort()
-    val total = sorted.size
-
-    val files = mutableListOf<Pair<ApkPackageNode, ApkPackageFile>>()
-    for ((i, node) in sorted.withIndex()) {
-      val x = i + 1
-      val pkg = node.pkg
-      println("[${x}/${total}] Fetching ${pkg.id} (${pkg.version})")
-      val file = provider.keeper.download(listOf(pkg)).single()
-      files.add(node to file)
-    }
+    ApkCommandShared.fetch(graph, provider)
   }
 }

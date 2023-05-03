@@ -42,8 +42,8 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
       val possibleSatisfactions = indexResolution.requirementToProvides[spec]
         ?: throw ApkRequirementUnsatisfiedException(pkg, spec)
       val chosen = possibleSatisfactions.maxBy { it.providerPriority ?: -50 }
-      val child = local.addChild(chosen)
       if (filter(local)) {
+        val child = local.addChild(chosen)
         edges.add(local to child)
       }
       add(chosen, filter)
@@ -185,9 +185,11 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     val results = mutableListOf<List<ApkPackageNode>>()
 
     // Create a mutable map of all nodes to all of their children in a set.
-    var working = nodes.mapKeys { node(it.key) }.mapValues {
-      it.value.children.toMutableSet()
-    }.toMutableMap()
+    var working = mutableMapOf<ApkPackageNode, MutableSet<ApkPackageNode>>()
+
+    nodes.values.associateWithTo(working) {
+      it.children.toMutableSet()
+    }
 
     // Remove any self dependencies (node that depends on itself)
     working.forEach { entry ->
@@ -252,12 +254,6 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     return results
   }
 
-  fun flexibleOrderSort(): List<List<ApkPackageNode>> = try {
-    parallelOrderSort()
-  } catch (e: ApkCyclicDependencyException) {
-    simpleOrderSort().map { listOf(it) }
-  }
-
   fun annotatedParallelOrderSort(): List<List<Pair<ApkPackageNode, List<ApkPackageNode>>>> {
     val parallel = parallelOrderSort()
 
@@ -274,5 +270,4 @@ class ApkPackageGraph(val indexResolution: ApkIndexResolution) {
     }
     return results
   }
-
 }

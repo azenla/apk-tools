@@ -1,5 +1,7 @@
 package gay.pizza.pkg.apk.index
 
+import net.swiftzer.semver.SemVer
+
 class ApkIndexPackage(
   val checksum: String,
   id: String,
@@ -22,6 +24,8 @@ class ApkIndexPackage(
 ) : ApkIndexRequirementRef(id) {
   val downloadFileName: String = "${id}-${version}.apk"
 
+  val parsedVersion by lazy { SemVer.parse(version) }
+  
   companion object {
     fun extract(entry: ApkRawIndexEntry): ApkIndexPackage {
       val map = entry.toMap()
@@ -61,7 +65,7 @@ class ApkIndexPackage(
         buildTime = buildTime,
         commit = commit,
         providerPriority = providerPriority,
-        dependencies = dependencies.mapNotNull { dependency -> ApkIndexDependency.extract(dependency) },
+        dependencies = dependencies.map { dependency -> ApkIndexDependency.extract(dependency) },
         provides = provides.mapNotNull { provide -> ApkIndexPackageProvide.extract(provide) },
         installIf = installIf.map { ins -> ApkIndexPackageInstallIf.extract(ins) },
         raw = entry

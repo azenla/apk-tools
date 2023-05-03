@@ -1,9 +1,8 @@
 package gay.pizza.pkg.apk.index
 
+import gay.pizza.pkg.apk.io.outputStream
 import gay.pizza.pkg.io.FsPath
-import gay.pizza.pkg.io.java.toJavaPath
 import java.io.InputStream
-import kotlin.io.path.outputStream
 
 class ApkIndexFile(val path: FsPath) {
   var index: ApkIndex? = null
@@ -17,7 +16,7 @@ class ApkIndexFile(val path: FsPath) {
   }
 
   fun write(data: InputStream): ApkIndex {
-    path.toJavaPath().outputStream().use { data.copyTo(it) }
+    path.outputStream().use { data.copyTo(it) }
     return load()
   }
 }

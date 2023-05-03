@@ -4,11 +4,11 @@ import gay.pizza.pkg.PlatformProcessSpawner
 import gay.pizza.pkg.apk.core.ApkDataReader
 import gay.pizza.pkg.apk.core.entries
 import gay.pizza.pkg.apk.index.ApkPackageNotFoundException
+import gay.pizza.pkg.apk.io.inputStream
 import gay.pizza.pkg.fetch.ContentFetcher
 import gay.pizza.pkg.fetch.ContentNotFoundException
 import gay.pizza.pkg.fetch.FetchRequest
 import gay.pizza.pkg.io.FsPath
-import gay.pizza.pkg.io.java.toJavaPath
 import gay.pizza.pkg.process.command.CommandName
 import gay.pizza.pkg.process.command.RawArgument
 import gay.pizza.pkg.process.command.RelativeDirectoryPath
@@ -30,8 +30,12 @@ class ApkPackageFile(val path: FsPath) {
 
   fun listInstalledFiles(): List<ApkInstalledFile> = packageDataStream().use { stream ->
     stream.entries.map { entry ->
+      var path = entry.name
+      if (path.endsWith("/")) {
+        path = path.substring(0, path.length - 1)
+      }
       ApkInstalledFile(
-        name = entry.name,
+        name = path,
         size = entry.size,
         isDirectory = entry.isDirectory
       )
@@ -44,20 +48,20 @@ class ApkPackageFile(val path: FsPath) {
     return ApkPkgInfo.parse(lines)
   }
 
-  fun metadataDataStream(): ArchiveInputStream {
-    val stream = path.toJavaPath().toFile().inputStream().buffered()
+  fun tarDataStream(index: Int): ArchiveInputStream {
+    val stream = path.inputStream().buffered()
     val reader = ApkDataReader(stream)
-    reader.readCompressedStream().readAllBytes()
+    var current = 0
+    while (current < index) {
+      reader.readCompressedStream().readAllBytes()
+      current++
+    }
     return reader.readTarStream()
   }
 
-  fun packageDataStream(): ArchiveInputStream {
-    val stream = path.toJavaPath().toFile().inputStream().buffered()
-    val reader = ApkDataReader(stream)
-    reader.readCompressedStream().readAllBytes()
-    reader.readCompressedStream().readAllBytes()
-    return reader.readTarStream()
-  }
+  fun signatureDataStream(): ArchiveInputStream = tarDataStream(0)
+  fun metadataDataStream(): ArchiveInputStream = tarDataStream(1)
+  fun packageDataStream(): ArchiveInputStream = tarDataStream(2)
 
   companion object {
     fun download(url: String, to: FsPath, fetcher: ContentFetcher): ApkPackageFile {

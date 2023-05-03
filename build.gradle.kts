@@ -33,6 +33,8 @@ dependencies {
   implementation("com.zaxxer:nuprocess:2.0.6")
   implementation("org.apache.commons:commons-compress:1.22")
   implementation("me.tongfei:progressbar:0.9.5")
+
+  implementation("net.swiftzer.semver:semver:1.2.0")
 }
 
 tasks.withType<KotlinCompile> {

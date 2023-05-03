@@ -1,6 +1,6 @@
 package gay.pizza.pkg.apk.file
 
-enum class ApkFsEntryType {
+enum class ApkFsEntityType {
   File,
   Directory
 }

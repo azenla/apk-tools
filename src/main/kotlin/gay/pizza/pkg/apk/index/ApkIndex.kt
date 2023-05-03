@@ -1,7 +1,7 @@
 package gay.pizza.pkg.apk.index
 
+import gay.pizza.pkg.apk.io.inputStream
 import gay.pizza.pkg.io.FsPath
-import gay.pizza.pkg.io.java.toJavaPath
 import java.net.URL
 
 class ApkIndex(
@@ -25,7 +25,7 @@ class ApkIndex(
     }
 
     fun loadByPath(path: FsPath): ApkIndex {
-      val stream = path.toJavaPath().toFile().inputStream().buffered()
+      val stream = path.inputStream().buffered()
       val raw = ApkRawIndex.parseGzipTarIndex(stream)
       return extract(raw)
     }

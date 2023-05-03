@@ -1,11 +1,12 @@
 package gay.pizza.pkg.apk.index
 
 open class ApkIndexRequirementRef(val id: String, val invert: Boolean = false) {
+  fun satisfiedBy(other: ApkIndexPackage): Boolean = true
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     other as ApkIndexRequirementRef
-    if (id != other.id && !invert) return false
-    return true
+    return !(id != other.id && !invert)
   }
 
   override fun hashCode(): Int {
